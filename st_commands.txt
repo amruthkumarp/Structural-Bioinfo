@@ -1,0 +1,58 @@
+Domain	Size	Backbone RMSD
+(A)	Residues
+1	108	3.23	  387 - 497
+2	373	3.43	  6 - 386
+3	92	4.84	  506 - 600
+
+# 1. Fetch PDB files (if not already downloaded)
+pdb_fetch 2kho > 2kho.pdb
+pdb_fetch 4b9q > 4b9q.pdb
+
+# 2. Select the chains
+pdb_selchain -A 2kho.pdb > 2kho_A.pdb
+pdb_selchain -B 4b9q.pdb > 4b9q_B.pdb
+
+# 3. Remove heteroatoms (ligands, water, ions)
+pdb_delhetatm 2kho_A.pdb > 2kho_A_clean.pdb
+pdb_delhetatm 4b9q_B.pdb > 4b9q_B_clean.pdb
+
+# 4. Remove alternate locations (optional, safer for alignments)
+pdb_selaltloc 2kho_A_clean.pdb > 2kho_A_final.pdb
+pdb_selaltloc 4b9q_B_clean.pdb > 4b9q_B_final.pdb
+
+# 5. Re-number residues (so both start from 1, avoids mismatches)
+pdb_reres 2kho_A_final.pdb > 2kho_A_ready.pdb
+pdb_reres 4b9q_B_final.pdb > 4b9q_B_ready.pdb
+
+aling
+
+pdb_tofasta 2kho_A_ready.pdb > 2kho.fasta
+pdb_tofasta 4b9q_B_ready.pdb > 4b9q.fasta
+
+cat 2kho.fasta 4b9q.fasta > both.fasta
+clustalo -i both.fasta -o aligned.fasta --force --outfmt=clu
+
+pdb_selres -1:583 2kho_A_ready.pdb | pdb_tidy > 2kho_trim.pdb
+pdb_selres -1:583 4b9q_B_ready.pdb | pdb_tidy > 4b9q_trim.pdb
+
+echo 'export PATH=$PATH:/home/ibab/.local/bin' >> ~/.bashrc
+source ~/.bashrc
+
+
+🔹 Step 2: Load CCP4 environment
+
+Once installed, you need to add CCP4 to your environment. Run:
+
+source /path/to/ccp4-7.0/bin/ccp4.setup-sh
+
+
+Example (if installed in /opt/xtal/ccp4-7.0):
+
+source /opt/xtal/ccp4-7.0/bin/ccp4.setup-sh
+
+
+To make it permanent, add that line to your ~/.bashrc:
+
+echo "source /opt/xtal/ccp4-7.0/bin/ccp4.setup-sh" >> ~/.bashrc
+
+
