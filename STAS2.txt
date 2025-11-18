@@ -1,0 +1,271 @@
+# We visit https://pubchem.ncbi.nlm. nih.gov/compound/Acetaminophen & download 
+Structure2D_COMPOUND_CID_1983.sdf (for 2-D data) & 
+Conformer3D_COMPOUND_CID_1983.sdf (for 3-D data).
+
+# .sdf to .smi
+obabel -isdf ./Conformer3D_COMPOUND_CID_1983.sdf -osmi > paracetamol.smi
+
+# .smi to .pdb 
+obabel -ismi paracetamol.smi -oPDB --gen3d > paracetamol.pdb
+obabel -ismi paracetamol.smi -oPDB --gen3d > paracetamol.pdbqt # for autodock format
+
+# generate structures from SMILE Sequences Discovery Studios
+1. Discovery Studio -> New Molecule Windows
+2. File -> Insert From -> SMILES & paste our SMILE sequence -> ok
+
+# pubchem sketcher
+pubchem.ncbi.nlm.nih.gov -> "Draw Structure" -> draw our desired structure
+-> "Search for This Structure" & look for related compounds matching SMILE sequence.
+
+
+
+
+
+
+# Structural alignment with LSQMAN
+1. lsqman
+2. # Read structure from file 1n8k.pdb into molecule slot m1
+   re m1 1n8k.pdb
+3. # Read structure from file 1ye3.pdb into molecule slot m2
+   re m2 1ye3.pdb
+4. # Extract residues 1-400 of chain A from m1 & residue 1 of chain A from m2
+   ex m1 A1-400 m2 A1
+5. # Align molecule m2 into m1
+   ap m1 m2
+6. # Save the aligned m2 coordinates into output file m2.pdb
+   wr m2 m2.pdb
+7. # Calculate & display matching atoms or residues
+   at ma
+   
+# Structural alignment with Pymol
+1. Open 1n8k.pdb & 1ye3.pdb with Pymol
+2. A -> Align -> to molecule -> {select 1n8k}
+
+# Structural Alignment with Chimera
+1. Open 1n8k.pdb & 1ye3.pdb with Chimera.
+2. Tools -> Structure Comparison -> "Match Maker" 
+   -> {select the reference structure & structure to match} -> {adjust chain id if reqd.} 
+   -> apply -> RMSD value is seen at bottom of screen
+   
+
+
+
+
+
+# pdb cleaning from terminal
+# Remove hydrogen atoms
+grep -v " H\([SDT]\|\) " input.pdb > noH.pdb
+
+# Remove water molecules (HOH and solvent residues)
+grep -v "HOH" input.pdb | grep -v "SOL" > nowat.pdb
+
+# Remove alternative conformations (keep only first conformation, A)
+grep -v "^ATOM........\ B" input.pdb > noalt.pdb
+
+# Remove ANISOU records (anisotropic temperature factors)
+grep -v "ANISOU" input.pdb > no_aniso.pdb
+
+# Remove non-ATOM/HETATM records (keep only coordinate data)
+grep "^ATOM  \|^HETATM" input.pdb > only_coords.pdb
+
+# Remove TER records and END
+grep -v "^TER\|^END" input.pdb > noter.pdb
+
+# Remove HETATM records (keep only standard residues)
+grep "^ATOM  " input.pdb > nohet.pdb
+
+# Remove everything except protein atoms (standard amino acids)
+grep "^ATOM  " input.pdb | grep -v "HOH" | egrep -v "NAP|NAD|FAD|HEM" > protein_only.pdb
+
+# Remove duplicate atoms (based on atom number and residue)
+awk '!seen[$6,$7]++' input.pdb > no_duplicates.pdb
+
+# Remove atoms with occupancy = 0
+awk '$11 != 0.00' input.pdb > occ_filtered.pdb
+
+# Remove atoms with B-factor > 80 (often indicates poor density)
+awk '$12 <= 80' input.pdb > bfactor_filtered.pdb
+
+# Keep only backbone atoms (N, CA, C, O)
+grep "^ATOM  " input.pdb | grep -E " N  | CA | C  | O  " > backbone_only.pdb
+
+# Remove insertion codes (records with A, B, etc after residue number)
+grep -v "^ATOM  .*[A-Z]$" input.pdb > no_insertion.pdb
+
+# Standardize chain IDs (keep only first chain)
+grep "^ATOM  .........A" input.pdb > chainA_only.pdb
+
+# Remove records with negative residue numbers
+grep -v "^ATOM  .*-" input.pdb > no_negative_res.pdb
+
+# Remove non-standard amino acids (keep only standard 20)
+grep "^ATOM  " input.pdb | grep -E "ALA|ARG|ASN|ASP|CYS|GLN|GLU|GLY|HIS|ILE|LEU|LYS|MET|PHE|PRO|SER|THR|TRP|TYR|VAL" > standard_aa.pdb
+
+# Remove everything except specific chain and standard residues
+grep "^ATOM  .........A" input.pdb | grep -E "ALA|ARG|ASN|ASP|CYS|GLN|GLU|GLY|HIS|ILE|LEU|LYS|MET|PHE|PRO|SER|THR|TRP|TYR|VAL" > clean_chainA.pdb
+
+# Remove records with non-standard atom names
+grep "^ATOM  " input.pdb | grep -v " [0-9]H[0-9]" > standard_atoms.pdb
+
+# Remove everything after specific column to clean formatting
+cut -c1-66 input.pdb > formatted.pdb
+
+# Remove ENDMDL records (keep only first model in NMR structures)
+grep -v "ENDMDL" input.pdb | grep -v "MODEL" > first_model.pdb
+
+
+
+
+
+
+# pdb cleaning with ccp4
+# cleaning
+/opt/ccp4-7.0/bin/ccp4i -> change project -> add project -> select folder & file -> edit pdb file
+      -> pdbcur -> {select prot} -> {do all} -> run & view com file
+# Ramachandran plot
+      -> Program list -> procheck -> {select and run}
+
+
+
+
+
+
+# dyndom
+Align two proteins in pymol -> save only the aligned parts as two different pdb files
+-> open dyndom page -> select both files as conformer 1 & 2 -> enter chain identifier-> run
+   
+
+
+
+
+
+# Energy minimization with Chimera clash resolution
+1. Download distorted.pdb & em.mdp
+2. Open distorted.pdb in chimera
+3. select -> select all
+4. tools -> structure/binding analysis -> find clashes/contacts -> themselves -> designate
+5. tick both "include intra-residue/molecule contacts" -> tick beside red box -> apply
+6. yellow lines appear. these are short contacts.
+7. tools -> structure editing -> minimize structure -> minimize -> keep clicking ok
+8. structure changes
+9. repeat steps 4 & 5 again, short contacts disappear.
+10. New chimera doesn't have this feature, so we shift to gromacs.
+
+# Energy minimization with GROMACS
+1. # Convert PDB to GROMACS format with no solvent and ignore hydrogens
+   gmx pdb2gmx -f distorted.pdb -water none -ignh -o conf.gro -p topol.top -> Press 6
+2. # Create simulation box with cubic geometry and 1.0 nm padding
+   gmx editconf -f conf.gro -bt cubic -d 1.0 -o box.gro
+3. # Preprocess energy minimization parameters (corrected command)
+   gmx grompp -f em.mdp -c box.gro -p topol.top -o em1.tpr
+4. # Run energy minimization with verbose output
+   gmx mdrun -v -deffnm em1
+
+
+
+
+
+
+17.09.2025
+1. # Generate topology and coordinate file from distorted PDB, ignore hydrogens, use SPC water model
+     gmx pdb2gmx -f distorted.pdb -water spc -ignh -o distorted.gro -p distorted.top
+     
+2. press 6
+
+3. # Define the box type as cubic with a distance of 1.0 nm from the solute
+     gmx editconf -f distorted.gro -bt cubic -d 1.0 -o box.gro
+     
+4. # Solvate the system with SPC216 water model and update topology file
+   gmx solvate -cp box.gro -cs spc216.gro -p distorted.top -o solvated.gro
+   
+5. visualize solvated.gro in chimera
+
+6. # Check genion command options and usage (help menu)
+   gmx genion -h
+   
+6.1 # Create ions.mdp file
+cat > ions.mdp << EOF
+; Minimal parameters for ion placement only
+integrator  = steep
+nsteps      = 0          ; No minimization needed for ion placement
+nstlist     = 1
+coulombtype = Cut-off    ; Simple cut-off avoids PME charge warnings
+rcoulomb    = 1.0
+rvdw        = 1.0
+EOF
+
+7. # Preprocess files for ion addition (generate portable binary run input file)
+   gmx grompp -f ions.mdp -p distorted.top -c solvated.gro -o ion.tpr
+   
+8. # Add ions to neutralize system and reach 0.15 M concentration, update topology
+   gmx genion -s ion.tpr -neutral -conc 0.15 -o ion.gro -p distorted.top
+   
+9. press 13
+
+10. # Preprocess for energy minimization using steepest descent
+    gmx grompp -c ion.gro -p distorted.top -f em.mdp -o em-steep.tpr
+    
+11. # Run energy minimization with steepest descent algorithm
+    gmx mdrun -v -deffnm em-steep
+    
+11.1. # After minimization completes, analyze energy components:
+gmx energy -f em-steep.edr -o energy.xvg
+
+# if warning appears "You are using a plain Coulomb cut-off, which might produce artifacts.
+  You might want to consider using PME electrostatics." open em.mdp & change 
+  coulombtype = cut-off to coulombtype = PME
+  
+12. cp em.mdp em_cg.mdp
+# in em_cg.mdp change integrator from steep to cg.
+# energy minimization with cg works provided a prior minimization has already been done with steep (step 11)
+
+13. # Preprocess files for energy minimization using conjugate gradient (after steepest descent)
+    gmx grompp -f em_cg.mdp -c em-steep.gro -p distorted.top -o em_cg.tpr
+    
+14. # Run energy minimization with conjugate gradient algorithm
+    gmx mdrun -v -deffnm em_cg
+    
+15. # View energy calculation options (help menu)
+    gmx energy -h
+    
+16. # Extract energy terms from energy minimization
+    gmx energy -f em-steep.edr > energy.xvg
+    
+    gmx energy -f em-steep.edr
+
+    
+17. enter 7, press enter twice (try for different values, also takes >1 values)
+
+18. xmgrace energy.xvg.1(check value from above)
+    # for more than one curve, explicitly do data -> import -> ASCII -> .dat to .xvg -> OK
+    
+19. # Convert steepest descent minimized structure to PDB with molecules kept whole
+    gmx trjconv -f em-steep.gro -pbc mol -o em-steep-mol.pdb -s em-steep.tpr
+    
+20. press 1 & enter
+
+21. # Convert conjugate gradient minimized structure to PDB with molecules kept whole
+    gmx trjconv -f em_cg.gro -pbc mol -o em_cg_mol.pdb -s em_cg.tpr
+    
+22. open both distorted.pdb & em_cg_mol.pdb in chimera -> tools -> structure comparison 
+    -> matchmaker -> select two molecules -> apply -> RMSD value is seen at bottom of screen
+    
+23. get ramachandran plot from ucla saves
+
+md simulation
+gmx grompp -c em_cg.gro -p distorted.top -f nvt.mdp -o nvt.tpr -r em_cg.gro
+gmx mdrun -v -deffnm nvt
+gmx grompp -c nvt.gro -p distorted.top -f npt.mdp -o npt.tpr -r nvt.gro
+gmx mdrun -v -deffnm npt
+gmx grompp -c nvt.gro -p distorted.top -f md.mdp -o md.tpr -r nvt.gro
+gmx mdrun -v -deffnm md -nt 1 -ntomp 1 -pin on
+
+
+
+
+
+# energy minimization of 1n8k.pdb
+1. grep -E "^ATOM|^TER" 1n8k.pdb > 1n8k_clean.pdb
+2. gmx pdb2gmx -f 1n8k_clean.pdb -water none -ignh -o conf.gro -p topol.top
+3. gmx grompp -f em.mdp -c conf.gro -p topol.top -o em.tpr -maxwarn 1
+4. gmx mdrun -v -deffnm em
